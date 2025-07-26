@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "dom3d",
+  "version": "0.0.4",
+  "description": "View and debug a website's DOM in 3D space.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "contextMenus"
+  ],
+  "icons": {
+    "128": "assets/dom3d-128.png"
+  },
+  "action": {
+    "default_icon": {
+      "128": "assets/dom3d-128.png"
+    },
+    "default_title": "dom3d"
+  }
+}

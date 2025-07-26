@@ -15,7 +15,7 @@ export function dom3d(
 	const MAX_ROTATION = 180; // set to 360 to rotate all the way round
 	const THICKNESS = 20; // thickness of layers
 	const PERSPECTIVE = 1000; // akin to FOV
-	const Z_INDEX_MULTIPLIER = 10; // Amplify z-index impact by factor of 10
+	const Z_INDEX_MULTIPLIER = 5; // Amplify z-index impact by factor of 5
 
 const state = {
   rotationX: 0,
