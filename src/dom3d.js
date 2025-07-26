@@ -13,28 +13,32 @@ export function dom3d(
 
 	const DEFAULT_HUE = 190;
 	const MAX_ROTATION = 180; // set to 360 to rotate all the way round
-	const THICKNESS = 20; // thickness of layers
+const THICKNESS = 1; // reduced thickness to minimize visual impact
 	const PERSPECTIVE = 1000; // akin to FOV
 
-	const state = {
-		rotationX: 0,
-		rotationY: 0,
-		zoomLevel: 1,
-		isDragging: false,
-		startX: 0,
-		startY: 0,
-		startRotationX: 0,
-		startRotationY: 0,
-	};
-	const domDepthCache = getDOMDepth(document.body);
+const state = {
+  rotationX: 0,
+  rotationY: 0,
+  zoomLevel: 1,
+  isDragging: false,
+  startX: 0,
+  startY: 0,
+  startRotationX: 0,
+  startRotationY: 0,
+  maxTranslateZ: 0,  // Track max depth for z-index adjustment
+};
+const domDepthCache = getDOMDepth(document.body);
 
-	// Apply initial styles to the body to enable 3D perspective
-	applyBaseBodyStyles();
-	addEventListeners();
-	traverseDOM(document.body, 0, 0, 0);
+// Apply initial styles to the body to enable 3D perspective
+applyBaseBodyStyles();
+addEventListeners();
+traverseDOM(document.body, 0, 0, 0);
+
+// Z-Index repositioning for proper 3D stacking
+repositionZIndexElements();
 
 	// Recursive function to traverse child nodes, apply 3D styles, and create side faces
-	function traverseDOM(parentNode, depthLevel, offsetX, offsetY) {
+function traverseDOM(parentNode, depthLevel, offsetX, offsetY) {
 		for (
 			let children = parentNode.children,
 				childrenCount = children.length,
@@ -45,6 +49,11 @@ export function dom3d(
 			const node = children[i];
 			if (node.classList.contains("dom3d-side-face")) continue;
 
+			// Track max depth for z-index adjustment
+			if (depthLevel > state.maxTranslateZ) {
+				state.maxTranslateZ = depthLevel;
+			}
+
 			// Set the color based on the selector or default hue
 			const hueSelector = SELECTORS.find((hue) => node.matches(hue.selector));
 			const hue = hueSelector ? hueSelector.hue : DEFAULT_HUE;
@@ -52,9 +61,9 @@ export function dom3d(
 				? getRandomColor()
 				: getColorByDepth(depthLevel, hue, -5);
 
-			// Apply the styles to the child node
+			// Apply styles with reduced impact (+1 per depth level instead of THICKNESS)
 			Object.assign(node.style, {
-				transform: `translateZ(${THICKNESS}px)`,
+				transform: `translateZ(${depthLevel}px)`, // Just +1px per depth level
 				overflow: "visible",
 				transformStyle: "preserve-3d",
 				backgroundColor: COLOR_SURFACE
@@ -73,10 +82,43 @@ export function dom3d(
 			createSideFaces(node, color);
 			traverseDOM(node, depthLevel + 1, updatedOffsetX, updatedOffsetY);
 		}
-	}
+}
 
-	// Create side faces for an element to give it a 3D appearance
-	function createSideFaces(element, color) {
+// Z-Index repositioning
+function repositionZIndexElements() {
+  const elements = Array.from(document.querySelectorAll("*"));
+  const positiveZIndexElements = [];
+  const negativeZIndexElements = [];
+
+  elements.forEach((element) => {
+    const zIndex = parseInt(getComputedStyle(element).zIndex, 10) || 0;
+    if (zIndex > 0) {
+      positiveZIndexElements.push(element);
+    } else if (zIndex < 0) {
+      negativeZIndexElements.push(element);
+    }
+  });
+
+  // Sort positive z-index elements in ascending order
+  positiveZIndexElements.sort((a, b) => {
+    return (
+      parseInt(getComputedStyle(a).zIndex, 10) -
+      parseInt(getComputedStyle(b).zIndex, 10)
+    );
+  });
+
+// Apply translateZ based on z-index order (simplified)
+  positiveZIndexElements.forEach((element, index) => {
+    element.style.transform = `translateZ(${index + state.maxTranslateZ}px)`;
+  });
+  
+  negativeZIndexElements.forEach((element, index) => {
+    element.style.transform = `translateZ(${-1 * (index + 1)}px)`;
+  });
+}
+
+// Create side faces for an element to give it a 3D appearance
+function createSideFaces(element, color) {
 		if (!SHOW_SIDES) return;
 
 		const width = element.offsetWidth;
